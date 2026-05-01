@@ -9,6 +9,8 @@ Every session you've had with Claude Code lives as a JSONL file under `~/.claude
 3. Adds **cross-references** when a session touches multiple projects
 4. Generates Obsidian Map-of-Content pages that use **Dataview** to render dynamic per-project tables — no rebuild step needed
 
+> _Screenshot of the project MOC view in Obsidian coming soon. Contributions welcome._
+
 ## Why
 
 Searching `~/.claude/projects/*.jsonl` directly is brutal. Existing Claude+Obsidian tools focus on live integration; this one focuses on **retroactive sync** of every session you ever had, with multi-topic indexing so you can find that one BOR-Platform discussion three weeks later.
