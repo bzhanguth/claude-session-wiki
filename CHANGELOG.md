@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## [1.1.2] - 2026-05-04
+
+### Added
+
+- **GLM-4.7 (z-ai) support on NIM.** The script now auto-injects `chat_template_kwargs: {"enable_thinking": false}` for any model id starting with `z-ai/` or containing `glm`. Without this flag GLM hangs the same way DeepSeek did. Tested: `z-ai/glm4.7` returns in ~44s on a real 6KB session (~3× slower than llama-70b but better technical detail in tested outputs).
+
+### Fixed
+
+- **SSE parser handles empty `choices` arrays** sent by some NIM models (notably z-ai). Previously raised `IndexError` and the session would fall back to a skeleton bullet.
+
 ## [1.1.1] - 2026-05-04
 
 ### Fixed

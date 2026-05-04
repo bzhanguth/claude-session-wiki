@@ -194,8 +194,13 @@ def summarize_nim(body: str, title: str, project: str, model: str) -> str:
         "messages": [{"role": "user", "content": _build_prompt(body, title, project)}],
         "max_tokens": 300, "temperature": 0.2, "stream": True,
     }
-    if "deepseek" in model.lower():
+    # NIM-specific quirk: reasoning-capable models hang unless the thinking
+    # flag is set explicitly. Different model families use different keys.
+    m = model.lower()
+    if "deepseek" in m:
         payload["chat_template_kwargs"] = {"thinking": False}
+    elif m.startswith("z-ai/") or "glm" in m:
+        payload["chat_template_kwargs"] = {"enable_thinking": False}
     req = urllib.request.Request(
         NIM_URL, data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json",
@@ -216,7 +221,10 @@ def summarize_nim(body: str, title: str, project: str, model: str) -> str:
                     obj = json.loads(data_str)
                 except json.JSONDecodeError:
                     continue
-                delta = obj.get("choices", [{}])[0].get("delta", {})
+                choices = obj.get("choices") or []
+                if not choices:
+                    continue
+                delta = choices[0].get("delta", {}) or {}
                 tok = delta.get("content")
                 if tok:
                     chunks.append(tok)
