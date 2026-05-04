@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## [1.1.1] - 2026-05-04
+
+### Fixed
+
+- **DeepSeek-v4 models on NIM** now work. The script auto-injects `chat_template_kwargs: {"thinking": false}` for any model id containing `deepseek` — without this flag NIM hangs indefinitely on every request (a reasoning-mode quirk). `deepseek-ai/deepseek-v4-flash` returns in ~14s warm. Note: `deepseek-v4-pro` still times out today due to a provider-side outage; switch to `flash` or `meta/llama-3.1-70b-instruct` if you hit it.
+
 ## [1.1.0] - 2026-05-04
 
 ### Added

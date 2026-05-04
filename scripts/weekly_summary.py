@@ -176,7 +176,16 @@ def _post_json(url: str, payload: dict, headers: dict, timeout: int) -> dict:
 
 
 def summarize_nim(body: str, title: str, project: str, model: str) -> str:
-    """Call NIM via streaming SSE — non-stream endpoint hangs on this account."""
+    """Call NIM via streaming SSE.
+
+    Two NIM-specific quirks handled here:
+      1. The non-stream endpoint hangs intermittently on free-tier accounts.
+         We always use stream=true and consume SSE chunks.
+      2. DeepSeek-v4 reasoning models hang indefinitely unless
+         `chat_template_kwargs.thinking` is set explicitly. We force
+         `thinking: false` (non-reasoning mode) for any deepseek-v4 model
+         since the reasoning path is currently broken on NIM.
+    """
     api_key = os.environ.get("NVIDIA_API_KEY", "")
     if not api_key:
         return "- _(LLM unavailable: NVIDIA_API_KEY not set)_"
@@ -185,6 +194,8 @@ def summarize_nim(body: str, title: str, project: str, model: str) -> str:
         "messages": [{"role": "user", "content": _build_prompt(body, title, project)}],
         "max_tokens": 300, "temperature": 0.2, "stream": True,
     }
+    if "deepseek" in model.lower():
+        payload["chat_template_kwargs"] = {"thinking": False}
     req = urllib.request.Request(
         NIM_URL, data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json",
