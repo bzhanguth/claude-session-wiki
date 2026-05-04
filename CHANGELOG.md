@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
+## [1.0.1] - 2026-05-04
+
+### Fixed
+
+- **Daily sync now refreshes ongoing sessions.** `--since N` previously filtered by the session's *first* timestamp, so any session started before the cutoff was skipped even if it had been edited within the window. It now uses the *last* message timestamp.
+- **Existing notes are auto-rewritten when the source JSONL is newer.** Previously the script skipped any filename that already existed in the vault, leaving long-running sessions frozen at their first export. The skip now compares mtimes, so updated sessions are refreshed in place without needing `--overwrite`.
+
 ## [1.0.0] - 2026-05-01
 
 Initial public release.

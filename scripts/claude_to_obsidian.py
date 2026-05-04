@@ -51,6 +51,7 @@ def extract_text_blocks(content):
 def parse_session(path: Path):
     title = ""
     first_ts = None
+    last_ts = None
     messages = []
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -67,8 +68,10 @@ def parse_session(path: Path):
             if t:
                 title = t
         ts = obj.get("timestamp")
-        if ts and first_ts is None:
-            first_ts = ts
+        if ts:
+            if first_ts is None:
+                first_ts = ts
+            last_ts = ts
         if otype in ("user", "assistant"):
             msg = obj.get("message", {})
             content = msg.get("content", []) if isinstance(msg, dict) else []
@@ -83,7 +86,8 @@ def parse_session(path: Path):
     if not title:
         title = path.stem[:40]
     return {"session_id": path.stem, "title": title,
-            "timestamp": first_ts, "messages": messages, "path": path}
+            "timestamp": first_ts, "last_timestamp": last_ts,
+            "messages": messages, "path": path}
 
 
 def ts_to_dt(ts):
@@ -176,20 +180,26 @@ def main():
         if s is None:
             continue
         dt = ts_to_dt(s["timestamp"])
-        if cutoff and dt and dt < cutoff:
+        last_dt = ts_to_dt(s.get("last_timestamp")) or dt
+        # Filter by date — use last activity, not session start
+        if cutoff and last_dt and last_dt < cutoff:
             continue
         if len(s["messages"]) < MIN_MESSAGES:
             too_short += 1
             continue
         fname = safe_filename(s["title"], dt)
-        if any(SESSIONS_DIR.rglob(fname)) and not args.overwrite:
-            skipped += 1
-            continue
+        # Auto-refresh when source JSONL is newer than existing note (ongoing sessions)
+        existing = next(iter(SESSIONS_DIR.rglob(fname)), None)
+        target = existing if existing else (RAW_DIR / fname)
+        if existing and not args.overwrite:
+            if fpath.stat().st_mtime <= existing.stat().st_mtime:
+                skipped += 1
+                continue
         if args.dry_run:
-            print(f"  [DRY] raw/{fname}  ({len(s['messages'])} msgs)")
+            print(f"  [DRY] {target.relative_to(SESSIONS_DIR)}  ({len(s['messages'])} msgs)")
             continue
         RAW_DIR.mkdir(parents=True, exist_ok=True)
-        (RAW_DIR / fname).write_text(render_markdown(s), encoding="utf-8")
+        target.write_text(render_markdown(s), encoding="utf-8")
         date = dt.strftime("%Y-%m-%d") if dt else "?"
         print(f"  ✓ {date}  {s['title'][:55]}")
         exported += 1
