@@ -26,6 +26,35 @@ JSONL_PROJECT_ROOTS = [
 SYNC_HOUR   = 17
 SYNC_MINUTE = 30
 
+# ── Weekly summary (optional) ────────────────────────────────────────────────
+# `scripts/weekly_summary.py` writes a Markdown digest of the previous ISO week
+# to `<vault>/<sessions>/weekly/YYYY-Wnn.md`, grouped by project, with an
+# optional LLM-generated 2-3 bullet narrative per session.
+#
+# Comment out WEEKLY_HOUR to disable the weekly job. WEEKLY_WEEKDAY uses
+# launchd's convention (0=Sun, 1=Mon, ..., 6=Sat).
+WEEKLY_WEEKDAY    = 1   # Monday
+WEEKLY_HOUR       = 6
+WEEKLY_MINUTE     = 0
+
+# Set False to skip narrative generation (skeleton-only summary).
+WEEKLY_USE_OLLAMA = True
+
+# Backend selection. "nim" uses NVIDIA's hosted OpenAI-compatible endpoint
+# (fast; requires NVIDIA_API_KEY in env). "ollama" uses a local Ollama
+# daemon. If unset, defaults to "nim" when NVIDIA_API_KEY is present, else
+# "ollama". The script auto-falls-back to skeleton bullets if the backend
+# is unreachable.
+WEEKLY_BACKEND = "nim"
+
+# NVIDIA NIM (hosted)
+NIM_URL    = "https://integrate.api.nvidia.com/v1/chat/completions"
+NIM_MODEL  = "meta/llama-3.1-70b-instruct"  # try "deepseek-ai/deepseek-v4-pro" if you prefer
+
+# Local Ollama. On a CPU-only machine, prefer a 3B model (llama3.2) over a 14B.
+OLLAMA_URL   = "http://localhost:11434/api/generate"
+OLLAMA_MODEL = "llama3.2:latest"
+
 # ── Classification rules ─────────────────────────────────────────────────────
 # Each session is auto-tagged with project / topic / subtopic by keyword
 # matching against title + full conversation text.

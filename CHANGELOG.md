@@ -2,7 +2,16 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [SemVer](https://semver.org/).
 
-## [1.0.1] - 2026-05-04
+## [1.1.0] - 2026-05-04
+
+### Added
+
+- **Weekly summary generator** (`scripts/weekly_summary.py`). Reads exported sessions from the vault, groups them by project for an ISO week, and writes `<vault>/<sessions>/weekly/YYYY-Wnn.md`. Optional Ollama integration produces 2-3 narrative bullets per session ("what was accomplished, decisions made, bugs fixed"). Cross-week continuity comes from a `prev:` frontmatter link, an auto-detected "Carryover threads" section (sessions started in prior weeks that advanced this week), and per-session `first_date → last_date` ranges in the output.
+- **Weekly launchd job** (`templates/launchd-weekly.plist`). `init.py` now optionally registers a Monday 06:00 cron (configurable via `WEEKLY_WEEKDAY` / `WEEKLY_HOUR` / `WEEKLY_MINUTE`). Comment out `WEEKLY_HOUR` in `config.py` to skip the weekly job.
+- **Two LLM backends** for narrative generation, selectable via `WEEKLY_BACKEND`:
+  - `nim` — NVIDIA hosted OpenAI-compatible API (uses `NVIDIA_API_KEY` env). Default model `meta/llama-3.1-70b-instruct`. Streams SSE so cold-start latency is bounded; recommended on CPU-only machines.
+  - `ollama` — local Ollama daemon. Default model `llama3.2:latest` (3B; the prior 14B default was intractable on Intel Mac CPUs).
+  - Auto-detection: if `NVIDIA_API_KEY` is set the script defaults to NIM, otherwise Ollama. Either backend falls back to a skeleton bullet (`_(LLM unavailable: …)_`) on error so the rest of the summary still renders.
 
 ### Fixed
 

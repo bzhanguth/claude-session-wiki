@@ -83,27 +83,47 @@ def scaffold_vault():
     print("Open `claude.md` in Obsidian. Install the Dataview plugin if you haven't.")
 
 
-def register_cron_macos():
-    user = getpass.getuser()
-    plist_path = Path.home() / "Library" / "LaunchAgents" / f"com.{user}.claude-session-wiki.plist"
-    log_path   = Path.home() / "Library" / "Logs" / "claude-session-wiki.log"
+def _install_plist(plist_path: Path, plist_text: str):
+    plist_path.parent.mkdir(parents=True, exist_ok=True)
+    plist_path.write_text(plist_text, encoding="utf-8")
+    subprocess.run(["launchctl", "unload", str(plist_path)],
+                   stderr=subprocess.DEVNULL)
+    subprocess.run(["launchctl", "load", str(plist_path)], check=True)
 
-    plist = render_template("launchd.plist", {
+
+def register_cron_macos():
+    user   = getpass.getuser()
+    python = shutil.which("python3") or "/usr/bin/python3"
+    log_path = Path.home() / "Library" / "Logs" / "claude-session-wiki.log"
+
+    # Daily sync
+    daily_plist = Path.home() / "Library" / "LaunchAgents" / f"com.{user}.claude-session-wiki.plist"
+    _install_plist(daily_plist, render_template("launchd.plist", {
         "USER":        user,
-        "PYTHON":      shutil.which("python3") or "/usr/bin/python3",
+        "PYTHON":      python,
         "SCRIPT_PATH": str(ROOT / "scripts" / "claude_to_obsidian.py"),
         "HOUR":        str(config.SYNC_HOUR),
         "MINUTE":      str(config.SYNC_MINUTE),
         "LOG_PATH":    str(log_path),
-    })
-    plist_path.parent.mkdir(parents=True, exist_ok=True)
-    plist_path.write_text(plist, encoding="utf-8")
+    }))
+    print(f"  ✓ Daily sync registered: fires at {config.SYNC_HOUR:02d}:{config.SYNC_MINUTE:02d} → {daily_plist}")
 
-    subprocess.run(["launchctl", "unload", str(plist_path)],
-                   stderr=subprocess.DEVNULL)
-    subprocess.run(["launchctl", "load", str(plist_path)], check=True)
-    print(f"  ✓ Registered launchd agent: {plist_path}")
-    print(f"  ✓ Will fire daily at {config.SYNC_HOUR:02d}:{config.SYNC_MINUTE:02d}")
+    # Weekly summary (optional — only if WEEKLY_HOUR is set)
+    if hasattr(config, "WEEKLY_HOUR"):
+        weekly_plist = Path.home() / "Library" / "LaunchAgents" / f"com.{user}.claude-session-wiki-weekly.plist"
+        weekly_log   = Path.home() / "Library" / "Logs" / "claude-session-wiki-weekly.log"
+        _install_plist(weekly_plist, render_template("launchd-weekly.plist", {
+            "USER":        user,
+            "PYTHON":      python,
+            "SCRIPT_PATH": str(ROOT / "scripts" / "weekly_summary.py"),
+            "WEEKDAY":     str(getattr(config, "WEEKLY_WEEKDAY", 1)),
+            "HOUR":        str(config.WEEKLY_HOUR),
+            "MINUTE":      str(getattr(config, "WEEKLY_MINUTE", 0)),
+            "LOG_PATH":    str(weekly_log),
+        }))
+        wd_name = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][getattr(config, "WEEKLY_WEEKDAY", 1)]
+        print(f"  ✓ Weekly summary registered: fires {wd_name} {config.WEEKLY_HOUR:02d}:"
+              f"{getattr(config, 'WEEKLY_MINUTE', 0):02d} → {weekly_plist}")
     print(f"  ✓ Logs: {log_path}")
 
 
